@@ -5,6 +5,7 @@ import com.crossoverjie.cim.common.enums.StatusEnum;
 import com.crossoverjie.cim.common.exception.CIMException;
 import com.crossoverjie.cim.common.pojo.CIMUserInfo;
 import com.crossoverjie.cim.common.util.RouteInfoParseUtil;
+import com.crossoverjie.cim.common.util.StringUtil;
 import com.crossoverjie.cim.route.api.vo.req.ChatReqVO;
 import com.crossoverjie.cim.route.api.vo.req.LoginReqVO;
 import com.crossoverjie.cim.route.api.vo.res.CIMServerResVO;
@@ -22,16 +23,18 @@ import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.crossoverjie.cim.common.enums.StatusEnum.OFF_LINE;
-import static com.crossoverjie.cim.route.constant.Constant.ACCOUNT_PREFIX;
-import static com.crossoverjie.cim.route.constant.Constant.ROUTE_PREFIX;
+import static com.crossoverjie.cim.route.constant.Constant.*;
 
 /**
  * Function:
@@ -46,6 +49,9 @@ public class AccountServiceRedisImpl implements AccountService {
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     @Autowired
     private UserInfoCacheService userInfoCacheService;
@@ -67,9 +73,20 @@ public class AccountServiceRedisImpl implements AccountService {
             info.setUserId(userId);
             info.setUserName(info.getUserName());
         }
+        // TODO: 2021/3/11 维护 target 列表
+        if (StringUtil.isEmpty(info.getTarget())) {
+            info.setTarget("target");
+        }
+        // 维护标签
+        String userKey = USER_TARGET_PREFIX + info.getUserId();
+        String targetKey = TARGET_USER_PREFIX + info.getTarget();
+
+        stringRedisTemplate.opsForZSet().add(userKey, info.getTarget(), System.currentTimeMillis());
+        stringRedisTemplate.opsForZSet().add(targetKey, info.getUserId().toString(), System.currentTimeMillis());
 
         return info;
     }
+
 
     @Override
     public StatusEnum login(LoginReqVO loginReqVO) throws Exception {
@@ -86,7 +103,7 @@ public class AccountServiceRedisImpl implements AccountService {
 
         //登录成功，保存登录状态
         boolean status = userInfoCacheService.saveAndCheckUserLoginStatus(loginReqVO.getUserId());
-        if (status == false) {
+        if (!status) {
             //重复登录
             return StatusEnum.REPEAT_LOGIN;
         }
@@ -128,6 +145,21 @@ public class AccountServiceRedisImpl implements AccountService {
         return routes;
     }
 
+
+    @Override
+    public Map<Long, CIMServerResVO> loadRouteRelatedByTarget(String target) {
+
+        Set<String> userIdSet = stringRedisTemplate.opsForZSet().range(TARGET_USER_PREFIX + target, 0, -1);
+
+        // TODO: 2021/3/11 lua script
+        return userIdSet.stream()
+                .collect(Collectors.toMap(Long::parseLong, userid -> {
+                    String value = stringRedisTemplate.opsForValue().get(userid);
+                    return new CIMServerResVO(RouteInfoParseUtil.parse(value));
+                }));
+
+    }
+
     @Override
     public CIMServerResVO loadRouteRelatedByUserId(Long userId) {
         String value = redisTemplate.opsForValue().get(ROUTE_PREFIX + userId);
@@ -148,6 +180,7 @@ public class AccountServiceRedisImpl implements AccountService {
     }
 
 
+    // TODO: 2021/3/11
     @Override
     public void pushMsg(CIMServerResVO cimServerResVO, long sendUserId, ChatReqVO groupReqVO) throws Exception {
         CIMUserInfo cimUserInfo = userInfoCacheService.loadUserInfoByUserId(sendUserId);

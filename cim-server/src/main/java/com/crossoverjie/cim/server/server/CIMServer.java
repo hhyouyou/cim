@@ -26,7 +26,7 @@ import java.net.InetSocketAddress;
  * Function:
  *
  * @author crossoverJie
- *         Date: 21/05/2018 00:30
+ * Date: 21/05/2018 00:30
  * @since JDK 1.8
  */
 @Component
@@ -79,9 +79,11 @@ public class CIMServer {
 
     /**
      * Push msg to client.
+     *
      * @param sendMsgReqVO 消息
      */
-    public void sendMsg(SendMsgReqVO sendMsgReqVO){
+    public void sendMsg(SendMsgReqVO sendMsgReqVO) {
+        // TODO: 2021/3/11 消息推送
         NioSocketChannel socketChannel = SessionSocketHolder.get(sendMsgReqVO.getUserId());
 
         if (null == socketChannel) {
@@ -95,7 +97,6 @@ public class CIMServer {
                 .build();
 
         ChannelFuture future = socketChannel.writeAndFlush(protocol);
-        future.addListener((ChannelFutureListener) channelFuture ->
-                LOGGER.info("server push msg:[{}]", sendMsgReqVO.toString()));
+        future.addListener((ChannelFutureListener) channelFuture -> LOGGER.info("server push msg:[{}]", sendMsgReqVO.toString()));
     }
 }

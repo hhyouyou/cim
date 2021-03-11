@@ -24,35 +24,32 @@ public final class ReConnectManager {
 
     /**
      * Trigger reconnect job
+     *
      * @param ctx
      */
     public void reConnect(ChannelHandlerContext ctx) {
-        buildExecutor() ;
-        scheduledExecutorService.scheduleAtFixedRate(new ReConnectJob(ctx),0,10, TimeUnit.SECONDS) ;
+        buildExecutor();
+        scheduledExecutorService.scheduleAtFixedRate(new ReConnectJob(ctx), 0, 10, TimeUnit.SECONDS);
     }
 
     /**
      * Close reconnect job if reconnect success.
      */
-    public void reConnectSuccess(){
+    public void reConnectSuccess() {
         scheduledExecutorService.shutdown();
     }
 
 
     /***
      * build an thread executor
-     * @return
      */
-    private ScheduledExecutorService buildExecutor() {
+    private void buildExecutor() {
         if (scheduledExecutorService == null || scheduledExecutorService.isShutdown()) {
             ThreadFactory sche = new ThreadFactoryBuilder()
                     .setNameFormat("reConnect-job-%d")
                     .setDaemon(true)
                     .build();
             scheduledExecutorService = new ScheduledThreadPoolExecutor(1, sche);
-            return scheduledExecutorService;
-        } else {
-            return scheduledExecutorService;
         }
     }
 }

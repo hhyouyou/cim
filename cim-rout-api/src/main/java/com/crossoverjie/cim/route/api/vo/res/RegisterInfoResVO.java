@@ -6,12 +6,16 @@ import java.io.Serializable;
  * Function:
  *
  * @author crossoverJie
- *         Date: 2018/12/23 21:54
+ * Date: 2018/12/23 21:54
  * @since JDK 1.8
  */
-public class RegisterInfoResVO implements Serializable{
-    private Long userId ;
-    private String userName ;
+public class RegisterInfoResVO implements Serializable {
+    private Long userId;
+    private String userName;
+    private String target;
+
+    public RegisterInfoResVO() {
+    }
 
     public RegisterInfoResVO(Long userId, String userName) {
         this.userId = userId;
@@ -40,5 +44,13 @@ public class RegisterInfoResVO implements Serializable{
                 "userId=" + userId +
                 ", userName='" + userName + '\'' +
                 '}';
+    }
+
+    public String getTarget() {
+        return target;
+    }
+
+    public void setTarget(String target) {
+        this.target = target;
     }
 }

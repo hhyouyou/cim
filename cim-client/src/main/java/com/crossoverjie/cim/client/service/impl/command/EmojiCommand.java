@@ -35,7 +35,7 @@ public class EmojiCommand implements InnerCommand {
         }
         String value = msg.split(" ")[1];
         if (value != null) {
-            Integer index = Integer.parseInt(value);
+            int index = Integer.parseInt(value);
             List<Emoji> all = (List<Emoji>) EmojiManager.getAll();
             all = all.subList(5 * index, 5 * index + 5);
 

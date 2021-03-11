@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: cim-client
+  boot:
+    admin:
+      url: http://127.0.0.1:8888
+
+
+  # web port
+server:
+  port: 8082
+
+  # 是否打开swagger
+swagger:
+  enable: true
+
+logging:
+  level:
+    root: error
+
+cim:
+  callback:
+    thread:
+      pool:
+        # 回调线程队列大小
+        size: 2
+      queue:
+        # 回调线程池大小
+        size: 2
+  heartbeat:
+    # 检测多少秒没有收到服务端端心跳后重新登录获取连接
+    time: 60
+  msg:
+    logger:
+      # 消息记录存放路径
+      path: /opt/logs/cim/
+  reconnect:
+    # 客户端连接失败重连次数
+    count: 3
+  route:
+    url: http://localhost:8083/
+  user:
+    id: 1615183672818
+    userName: 123
+  user-info: { 1615429757989L: test1, 1615429774294L: test2,1615429798054L: test3,1615429807078L: test4,1615429814478L: test5 }
+management:
+  security:
+    enabled: false

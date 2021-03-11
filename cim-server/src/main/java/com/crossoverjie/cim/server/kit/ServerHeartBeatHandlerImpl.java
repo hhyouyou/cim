@@ -31,16 +31,16 @@ public class ServerHeartBeatHandlerImpl implements HeartBeatHandler {
     private AppConfiguration appConfiguration ;
 
     @Override
-    public void process(ChannelHandlerContext ctx) throws Exception {
+    public void process(ChannelHandlerContext ctx) {
 
         long heartBeatTime = appConfiguration.getHeartBeatTime() * 1000;
 
         Long lastReadTime = NettyAttrUtil.getReaderTime(ctx.channel());
         long now = System.currentTimeMillis();
-        if (lastReadTime != null && now - lastReadTime > heartBeatTime){
+        if (lastReadTime != null && now - lastReadTime > heartBeatTime) {
             CIMUserInfo userInfo = SessionSocketHolder.getUserId((NioSocketChannel) ctx.channel());
-            if (userInfo != null){
-                LOGGER.warn("客户端[{}]心跳超时[{}]ms，需要关闭连接!",userInfo.getUserName(),now - lastReadTime);
+            if (userInfo != null) {
+                LOGGER.warn("客户端[{}]心跳超时[{}]ms，需要关闭连接!", userInfo.getUserName(), now - lastReadTime);
             }
             routeHandler.userOffLine(userInfo, (NioSocketChannel) ctx.channel());
             ctx.channel().close();

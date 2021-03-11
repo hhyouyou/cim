@@ -26,7 +26,17 @@ public interface RouteApi {
     Object groupRoute(ChatReqVO groupReqVO) throws Exception;
 
     /**
+     * group send by target
+     *
+     * @param groupReqVO
+     * @return
+     * @throws Exception
+     */
+    Object groupRouteByTarget(ChatReqVO groupReqVO) throws Exception;
+
+    /**
      * Point to point chat
+     *
      * @param p2pRequest
      * @return
      * @throws Exception
@@ -45,6 +55,7 @@ public interface RouteApi {
 
     /**
      * Login account
+     *
      * @param loginReqVO
      * @return
      * @throws Exception

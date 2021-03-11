@@ -26,16 +26,9 @@ import io.netty.util.concurrent.DefaultThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-import org.springframework.util.CollectionUtils;
+import org.springframework.beans.factory.annotation.Value;
 
 import javax.annotation.PostConstruct;
-import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Function:
@@ -44,19 +37,20 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Date: 22/05/2018 14:19
  * @since JDK 1.8
  */
-@Component
-public class CIMClient {
+//@Component
+public class CIMClientBack {
 
-    private final static Logger LOGGER = LoggerFactory.getLogger(CIMClient.class);
+    private final static Logger LOGGER = LoggerFactory.getLogger(CIMClientBack.class);
 
     private EventLoopGroup group = new NioEventLoopGroup(0, new DefaultThreadFactory("cim-work"));
 
-    //    @Value("${cim.user-info}")
-    private Map<Long, String> userInfo = new HashMap<>(8);
+    @Value("${cim.user.id}")
+    private long userId;
 
-    private List<Long> userIds;
+    @Value("${cim.user.userName}")
+    private String userName;
 
-    private Map<Long, SocketChannel> channelMap = new ConcurrentHashMap<>(8);
+    private SocketChannel channel;
 
     @Autowired
     private EchoService echoService;
@@ -81,36 +75,17 @@ public class CIMClient {
      */
     private int errorCount;
 
-
-    private SocketChannel getChannel(Long userId) {
-        return channelMap.get(userId);
-    }
-
     @PostConstruct
     public void start() throws Exception {
-        userInfo.put(1615429757989L, "test1");
-        userInfo.put(1615429774294L, "test2");
-        userInfo.put(1615429798054L, "test3");
-        userInfo.put(1615429807078L, "test4");
-        userInfo.put(1615429814478L, "test5");
 
-        AtomicInteger counter = new AtomicInteger(0);
+        //登录 + 获取可以使用的服务器 ip+port
+        CIMServerResVO.ServerInfo cimServer = userLogin();
 
-        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(5, 10, 100L, TimeUnit.SECONDS,
-                new ArrayBlockingQueue<>(5), r -> new Thread(r, "client-" + counter.incrementAndGet()), (r, executor) -> System.out.println("拒绝处理啊"));
-        userInfo.forEach((userId, userName) -> threadPoolExecutor.execute(() -> {
+        //启动客户端
+        startClient(cimServer);
 
-            //登录 + 获取可以使用的服务器 ip+port
-            CIMServerResVO.ServerInfo cimServer = userLogin(userId, userName);
-
-            //启动客户端
-            SocketChannel channel = startClient(cimServer);
-
-            channelMap.put(userId, channel);
-
-            //向服务端注册
-            loginCIMServer(userId, userName, channel);
-        }));
+        //向服务端注册
+        loginCIMServer();
 
 
     }
@@ -121,11 +96,12 @@ public class CIMClient {
      * @param cimServer
      * @throws Exception
      */
-    private SocketChannel startClient(CIMServerResVO.ServerInfo cimServer) {
+    private void startClient(CIMServerResVO.ServerInfo cimServer) {
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(group)
                 .channel(NioSocketChannel.class)
-                .handler(new CIMClientHandleInitializer());
+                .handler(new CIMClientHandleInitializer())
+        ;
 
         ChannelFuture future = null;
         try {
@@ -143,18 +119,16 @@ public class CIMClient {
             echoService.echo("Start cim client success!");
             LOGGER.info("启动 cim client 成功");
         }
-        return (SocketChannel) future.channel();
+        channel = (SocketChannel) future.channel();
     }
 
     /**
      * 登录+路由服务器
      *
-     * @param userId
-     * @param userName
      * @return 路由服务器信息
      * @throws Exception
      */
-    private CIMServerResVO.ServerInfo userLogin(Long userId, String userName) {
+    private CIMServerResVO.ServerInfo userLogin() {
         LoginReqVO loginReqVO = new LoginReqVO(userId, userName);
         CIMServerResVO.ServerInfo cimServer = null;
         try {
@@ -179,12 +153,8 @@ public class CIMClient {
 
     /**
      * 向服务器注册
-     *
-     * @param userId
-     * @param userName
-     * @param channel
      */
-    private void loginCIMServer(Long userId, String userName, SocketChannel channel) {
+    private void loginCIMServer() {
         CIMRequestProto.CIMReqProtocol login = CIMRequestProto.CIMReqProtocol.newBuilder()
                 .setRequestId(userId)
                 .setReqMsg(userName)
@@ -196,31 +166,12 @@ public class CIMClient {
         );
     }
 
-
     /**
      * 发送消息字符串
      *
      * @param msg
      */
     public void sendStringMsg(String msg) {
-        if (CollectionUtils.isEmpty(userIds)) {
-            userIds = new ArrayList<>(userInfo.keySet());
-        }
-        Long userId = userIds.get(new Random().nextInt(userIds.size()));
-        sendStringMsg(msg, channelMap.get(userId));
-    }
-
-    public void sendGoogleProtocolMsg(GoogleProtocolVO googleProtocolVO) {
-        Long userId = userIds.get(new Random().nextInt(userIds.size()));
-        sendGoogleProtocolMsg(googleProtocolVO, channelMap.get(userId));
-    }
-
-    /**
-     * 发送消息字符串
-     *
-     * @param msg
-     */
-    public void sendStringMsg(String msg, SocketChannel channel) {
         ByteBuf message = Unpooled.buffer(msg.getBytes().length);
         message.writeBytes(msg.getBytes());
         ChannelFuture future = channel.writeAndFlush(message);
@@ -234,7 +185,7 @@ public class CIMClient {
      *
      * @param googleProtocolVO
      */
-    public void sendGoogleProtocolMsg(GoogleProtocolVO googleProtocolVO, SocketChannel channel) {
+    public void sendGoogleProtocolMsg(GoogleProtocolVO googleProtocolVO) {
 
         CIMRequestProto.CIMReqProtocol protocol = CIMRequestProto.CIMReqProtocol.newBuilder()
                 .setRequestId(googleProtocolVO.getRequestId())
@@ -258,7 +209,7 @@ public class CIMClient {
      *
      * @throws Exception
      */
-    public void reconnect(SocketChannel channel) throws Exception {
+    public void reconnect() throws Exception {
         if (channel != null && channel.isActive()) {
             return;
         }
@@ -272,22 +223,14 @@ public class CIMClient {
         ContextHolder.clear();
     }
 
-    public void reconnect() throws Exception {
-        for (Map.Entry<Long, SocketChannel> entry : channelMap.entrySet()) {
-            reconnect(entry.getValue());
-        }
-    }
-
     /**
      * 关闭
      *
      * @throws InterruptedException
      */
     public void close() throws InterruptedException {
-        channelMap.forEach((userId, channel) -> {
-            if (channel != null) {
-                channel.close();
-            }
-        });
+        if (channel != null) {
+            channel.close();
+        }
     }
 }

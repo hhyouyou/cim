@@ -38,9 +38,8 @@ public class RouteHandler {
      *
      * @param userInfo
      * @param channel
-     * @throws IOException
      */
-    public void userOffLine(CIMUserInfo userInfo, NioSocketChannel channel) throws IOException {
+    public void userOffLine(CIMUserInfo userInfo, NioSocketChannel channel) {
         if (userInfo != null) {
             LOGGER.info("Account [{}] offline", userInfo.getUserName());
             SessionSocketHolder.removeSession(userInfo.getUserId());

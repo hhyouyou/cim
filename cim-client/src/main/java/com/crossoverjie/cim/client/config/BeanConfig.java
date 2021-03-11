@@ -90,8 +90,7 @@ public class BeanConfig {
                 .setNameFormat("reConnect-job-%d")
                 .setDaemon(true)
                 .build();
-        ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(1,sche) ;
-        return scheduledExecutorService ;
+        return new ScheduledThreadPoolExecutor(1, sche);
     }
 
     /**

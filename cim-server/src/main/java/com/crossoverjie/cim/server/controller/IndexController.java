@@ -10,11 +10,10 @@ import com.crossoverjie.cim.server.server.CIMServer;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.metrics.CounterService;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Function:
@@ -23,7 +22,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
  *         Date: 22/05/2018 14:46
  * @since JDK 1.8
  */
-@Controller
+@RestController
 @RequestMapping("/")
 public class IndexController implements ServerApi {
 
@@ -45,7 +44,6 @@ public class IndexController implements ServerApi {
     @Override
     @ApiOperation("Push msg to client")
     @RequestMapping(value = "sendMsg",method = RequestMethod.POST)
-    @ResponseBody
     public BaseResponse<SendMsgResVO> sendMsg(@RequestBody SendMsgReqVO sendMsgReqVO){
         BaseResponse<SendMsgResVO> res = new BaseResponse();
         cimServer.sendMsg(sendMsgReqVO) ;

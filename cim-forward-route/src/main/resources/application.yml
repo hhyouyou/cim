@@ -1,0 +1,70 @@
+spring:
+  application:
+    name: cim-forward-route
+  # Redis 配置
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    pool:
+      max-active: 100
+      max-idle: 100
+      max-wait: 1000
+      min-idle: 10
+  rabbitmq:
+    username: guest
+    password: guset
+    host: 127.0.0.1
+    port: 5672
+    virtual-host: /
+    listener:
+      simple:
+        acknowledge-mode: manual
+
+cim:
+  rabbit:
+    exchange: topic.exchange.cim
+    queue: queue.send.msg
+    routing: routing.send.msg
+
+server:
+  # web port
+  port: 8083
+
+  # 是否打开swagger
+swagger:
+  enable: true
+logging:
+  level:
+    root: info
+
+
+# 关闭健康检查权限
+management:
+  security:
+    enabled: false
+
+# zk 地址
+app:
+  zk:
+    addr: localhost:2181
+    # zk 连接超时时限
+    connect:
+      timeout: 15000
+    # zk 注册根节点
+    root: /route
+
+  route:
+    #路由策略，一致性 hash
+    way: com.crossoverjie.cim.common.route.algorithm.consistenthash.ConsistentHashHandle
+    #一致性 hash 算法具体实现--TreeMap
+    consitenthash: com.crossoverjie.cim.common.route.algorithm.consistenthash.TreeMapConsistentHash
+
+
+#路由策略，轮询
+#app.route.way=com.crossoverjie.cim.common.route.algorithm.loop.LoopHandle
+
+#路由策略，随机
+#app.route.way=com.crossoverjie.cim.common.route.algorithm.random.RandomHandle
+
+#一致性 hash 算法具体实现--自定义有序 map
+#app.route.way.consitenthash=com.crossoverjie.cim.common.route.algorithm.consistenthash.SortArrayMapConsistentHash
