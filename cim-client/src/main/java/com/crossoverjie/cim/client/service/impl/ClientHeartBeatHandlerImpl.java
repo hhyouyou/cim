@@ -1,7 +1,6 @@
 package com.crossoverjie.cim.client.service.impl;
 
 import com.crossoverjie.cim.client.client.CIMClient;
-import com.crossoverjie.cim.client.thread.ContextHolder;
 import com.crossoverjie.cim.common.kit.HeartBeatHandler;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
@@ -28,8 +27,9 @@ public class ClientHeartBeatHandlerImpl implements HeartBeatHandler {
     @Override
     public void process(ChannelHandlerContext ctx) throws Exception {
 
-        //重连
-        ContextHolder.setReconnect(true);
+//        //重连
+//        ContextHolder.setReconnect(true);
+//
 //        cimClient.reconnect();
 
     }

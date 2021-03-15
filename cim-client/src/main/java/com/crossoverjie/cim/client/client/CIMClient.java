@@ -81,6 +81,10 @@ public class CIMClient {
      */
     private int errorCount;
 
+    /**
+     * 客户端数量
+     */
+    private final static int CLIENT_COUNT = 1000;
 
     private SocketChannel getChannel(Long userId) {
         return channelMap.get(userId);
@@ -88,37 +92,38 @@ public class CIMClient {
 
     @PostConstruct
     public void start() throws Exception {
-//        userInfo.put(1615429757989L, "test1");
-//        userInfo.put(1615429774294L, "test2");
-//        userInfo.put(1615429798054L, "test3");
-//        userInfo.put(1615429807078L, "test4");
-//        userInfo.put(1615429814478L, "test5");
-        int clientCount = 5000;
 
-        for (int i = 0; i < clientCount; i++) {
+        for (int i = 0; i < CLIENT_COUNT; i++) {
             userInfo.put(i + System.currentTimeMillis(), "client-" + i);
         }
 
-        AtomicInteger counter = new AtomicInteger(0);
-
-        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(clientCount, clientCount * 2, 300L, TimeUnit.SECONDS,
-                new ArrayBlockingQueue<>(clientCount), r -> new Thread(r, "client-" + counter.incrementAndGet()), (r, executor) -> System.out.println("拒绝处理啊"));
-        userInfo.forEach((userId, userName) -> threadPoolExecutor.execute(() -> {
-
-            //登录 + 获取可以使用的服务器 ip+port
-            CIMServerResVO.ServerInfo cimServer = userLogin(userId, userName);
-
-            //启动客户端
-            SocketChannel channel = startClient(cimServer);
-
-            channelMap.put(userId, channel);
-
-            //向服务端注册
-            loginCIMServer(userId, userName, channel);
-        }));
-
+        start0();
 
     }
+
+    public void start0() {
+
+        AtomicInteger counter = new AtomicInteger(0);
+
+        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(CLIENT_COUNT, CLIENT_COUNT * 2, 300L, TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(CLIENT_COUNT), r -> new Thread(r, "client-" + counter.incrementAndGet()), (r, executor) -> System.out.println("拒绝处理啊"));
+        userInfo.forEach((userId, userName) -> threadPoolExecutor.execute(() -> start1(userId, userName)));
+    }
+
+    public void start1(Long userId, String userName) {
+
+        // 登录鉴权 + 获取可以使用的服务器 ip+port
+        CIMServerResVO.ServerInfo cimServer = userLogin(userId, userName);
+
+        // 启动客户端：从服务端获取socket连接
+        SocketChannel channel = startClient(cimServer);
+
+        channelMap.put(userId, channel);
+
+        // 向服务端发送登录请求
+        loginCIMServer(userId, userName, channel);
+    }
+
 
     /**
      * 启动客户端
@@ -196,9 +201,7 @@ public class CIMClient {
                 .setType(Constants.CommandType.LOGIN)
                 .build();
         ChannelFuture future = channel.writeAndFlush(login);
-        future.addListener((ChannelFutureListener) channelFuture ->
-                echoService.echo("Registry cim server success!")
-        );
+        future.addListener((ChannelFutureListener) channelFuture -> echoService.echo("Registry cim server success!"));
     }
 
 
@@ -271,11 +274,12 @@ public class CIMClient {
         routeRequest.offLine();
 
         echoService.echo("cim server shutdown, reconnecting....");
-        start();
+//        start();
         echoService.echo("Great! reConnect success!!!");
         reConnectManager.reConnectSuccess();
         ContextHolder.clear();
     }
+
 
     public void reconnect() throws Exception {
         for (Map.Entry<Long, SocketChannel> entry : channelMap.entrySet()) {

@@ -29,7 +29,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -98,21 +97,7 @@ public class RouteController implements RouteApi {
 
         LOGGER.info("msg=[{}]", groupReqVO.toString());
 
-        //获取所有的推送列表
-        Map<Long, CIMServerResVO> serverResVoMap = accountService.loadRouteRelatedByTarget(groupReqVO.getTarget());
-
-        //过滤掉自己
-        if (Objects.nonNull(serverResVoMap.remove(groupReqVO.getUserId()))) {
-            LOGGER.warn("过滤掉了发送者 userId={}", groupReqVO.getUserId());
-        }
-        for (Map.Entry<Long, CIMServerResVO> cimServerResVoEntry : serverResVoMap.entrySet()) {
-            Long userId = cimServerResVoEntry.getKey();
-            CIMServerResVO cimServerResVO = cimServerResVoEntry.getValue();
-
-            //推送消息
-            ChatReqVO chatVO = new ChatReqVO(userId, groupReqVO.getMsg());
-            accountService.pushMsg(cimServerResVO, groupReqVO.getUserId(), chatVO);
-        }
+        accountService.pushMsg(groupReqVO);
 
         BaseResponse<NULLBody> res = new BaseResponse();
         res.setCode(StatusEnum.SUCCESS.getCode());

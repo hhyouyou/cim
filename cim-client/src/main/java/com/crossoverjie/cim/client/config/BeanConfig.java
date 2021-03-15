@@ -45,12 +45,11 @@ public class BeanConfig {
      */
     @Bean(value = "heartBeat")
     public CIMRequestProto.CIMReqProtocol heartBeat() {
-        CIMRequestProto.CIMReqProtocol heart = CIMRequestProto.CIMReqProtocol.newBuilder()
+        return CIMRequestProto.CIMReqProtocol.newBuilder()
                 .setRequestId(userId)
                 .setReqMsg("ping")
                 .setType(Constants.CommandType.PING)
                 .build();
-        return heart;
     }
 
 

@@ -1,41 +1,30 @@
 package com.crossoverjie.cim.route.constant;
 
 /**
- * Function:
+ * redis 键值对
  *
- * @author crossoverJie
- * Date: 2018/9/10 14:07
- * @since JDK 1.8
+ * @author djx
  */
-public final class Constant {
-
+public final class ConstantRedis {
 
     /**
-     * 账号前缀
+     * 账号信息
      */
     public final static String ACCOUNT_PREFIX = "cim-account:";
 
     /**
-     * 路由信息前缀
+     * 服务端-用户关系
      */
     public final static String ROUTE_PREFIX = "cim-route:";
 
     /**
-     * 保存server 对应的client
-     */
-    public final static String SERVER_CLIENT_PREFIX = "server-client:";
-
-    /**
-     * 登录状态前缀
+     * 用户登录状态
      */
     public final static String LOGIN_STATUS_PREFIX = "login-status";
-
 
     /**
      * 用户-标签
      */
     public final static String USER_TARGET_PREFIX = "cim:user-id:target:";
     public final static String TARGET_USER_PREFIX = "cim:target:user-id:";
-
-
 }

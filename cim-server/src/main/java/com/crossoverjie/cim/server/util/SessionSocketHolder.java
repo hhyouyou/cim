@@ -14,7 +14,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * @since JDK 1.8
  */
 public class SessionSocketHolder {
+    /**
+     * Save the relationship between the userId and the channel.
+     */
     private static final Map<Long, NioSocketChannel> CHANNEL_MAP = new ConcurrentHashMap<>(16);
+
     private static final Map<Long, String> SESSION_MAP = new ConcurrentHashMap<>(16);
 
     public static void saveSession(Long userId, String userName) {
@@ -25,12 +29,6 @@ public class SessionSocketHolder {
         SESSION_MAP.remove(userId);
     }
 
-    /**
-     * Save the relationship between the userId and the channel.
-     *
-     * @param id
-     * @param socketChannel
-     */
     public static void put(Long id, NioSocketChannel socketChannel) {
         CHANNEL_MAP.put(id, socketChannel);
     }

@@ -3,10 +3,8 @@ package com.crossoverjie.cim.server.handle;
 import com.crossoverjie.cim.common.constant.Constants;
 import com.crossoverjie.cim.common.exception.CIMException;
 import com.crossoverjie.cim.common.kit.HeartBeatHandler;
-import com.crossoverjie.cim.common.pojo.CIMUserInfo;
 import com.crossoverjie.cim.common.protocol.CIMRequestProto;
 import com.crossoverjie.cim.common.util.NettyAttrUtil;
-import com.crossoverjie.cim.server.kit.RouteHandler;
 import com.crossoverjie.cim.server.kit.ServerHeartBeatHandlerImpl;
 import com.crossoverjie.cim.server.util.SessionSocketHolder;
 import com.crossoverjie.cim.server.util.SpringBeanFactory;
@@ -42,16 +40,16 @@ public class CIMServerHandle extends SimpleChannelInboundHandler<CIMRequestProto
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         //可能出现业务判断离线后再次触发 channelInactive
-        CIMUserInfo userInfo = SessionSocketHolder.getUserId((NioSocketChannel) ctx.channel());
-        if (userInfo != null) {
-            LOGGER.warn("[{}] trigger channelInactive offline!", userInfo.getUserName());
-
-            //Clear route info and offline.
-            RouteHandler routeHandler = SpringBeanFactory.getBean(RouteHandler.class);
-            routeHandler.userOffLine(userInfo, (NioSocketChannel) ctx.channel());
-
-            ctx.channel().close();
-        }
+//        CIMUserInfo userInfo = SessionSocketHolder.getUserId((NioSocketChannel) ctx.channel());
+//        if (userInfo != null) {
+//            LOGGER.warn("[{}] trigger channelInactive offline!", userInfo.getUserName());
+//
+//            //Clear route info and offline.
+//            RouteHandler routeHandler = SpringBeanFactory.getBean(RouteHandler.class);
+//            routeHandler.userOffLine(userInfo, (NioSocketChannel) ctx.channel());
+//
+//            ctx.channel().close();
+//        }
     }
 
     @Override

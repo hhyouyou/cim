@@ -23,10 +23,10 @@ cim:
     thread:
       # 回调线程池大小
       pool:
-        size: 50
+        size: 100
         # 回调线程队列大小
       queue:
-        size: 50
+        size: 100
   heartbeat:
     # 检测多少秒没有收到服务端端心跳后重新登录获取连接
     time: 60

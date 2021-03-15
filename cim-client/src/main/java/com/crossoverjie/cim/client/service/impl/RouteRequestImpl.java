@@ -163,4 +163,19 @@ public class RouteRequestImpl implements RouteRequest {
             response.body().close();
         }
     }
+
+
+    @Override
+    public void offLine(Long userId) {
+        RouteApi routeApi = new ProxyManager<>(RouteApi.class, routeUrl, okHttpClient).getInstance();
+        ChatReqVO vo = new ChatReqVO(userId, "offLine");
+        Response response = null;
+        try {
+            response = (Response) routeApi.offLine(vo);
+        } catch (Exception e) {
+            LOGGER.error("exception", e);
+        } finally {
+            response.body().close();
+        }
+    }
 }

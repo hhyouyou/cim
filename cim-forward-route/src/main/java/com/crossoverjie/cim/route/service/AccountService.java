@@ -86,4 +86,11 @@ public interface AccountService {
      * @throws Exception
      */
     void offLine(Long userId) throws Exception;
+
+    /**
+     * 推送消息
+     *
+     * @param groupReqVO
+     */
+    void pushMsg(ChatReqVO groupReqVO);
 }

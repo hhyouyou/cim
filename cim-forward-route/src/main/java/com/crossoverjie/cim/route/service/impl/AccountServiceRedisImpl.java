@@ -32,10 +32,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.crossoverjie.cim.common.enums.StatusEnum.OFF_LINE;
-import static com.crossoverjie.cim.route.constant.Constant.*;
+import static com.crossoverjie.cim.route.constant.ConstantRedis.*;
 
 /**
  * Function:
@@ -69,8 +71,10 @@ public class AccountServiceRedisImpl implements AccountService {
     @Value("${cim.rabbit.routing}")
     private String routing;
 
+    private Map<String, String> routeMap = new ConcurrentHashMap<>(64);
 
     @Override
+
     public RegisterInfoResVO register(RegisterInfoResVO info) {
         String key = ACCOUNT_PREFIX + info.getUserId();
 
@@ -168,7 +172,8 @@ public class AccountServiceRedisImpl implements AccountService {
         Map<Long, CIMServerResVO> serverResMap = new HashMap<>(32);
 
         for (String userIdStr : userIdSet) {
-            String value = stringRedisTemplate.opsForValue().get(ROUTE_PREFIX + userIdStr);
+
+            String value = cache(userIdStr);
             if (StringUtils.isEmpty(value)) {
                 continue;
             }
@@ -177,8 +182,18 @@ public class AccountServiceRedisImpl implements AccountService {
         }
 
         return serverResMap;
-
     }
+
+    public String cache(String userId) {
+        String route = routeMap.get(userId);
+        if (StringUtils.isEmpty(route)) {
+            route = stringRedisTemplate.opsForValue().get(ROUTE_PREFIX + userId);
+            routeMap.put(userId, route);
+            return route;
+        }
+        return route;
+    }
+
 
     @Override
     public CIMServerResVO loadRouteRelatedByUserId(Long userId) {
@@ -188,12 +203,11 @@ public class AccountServiceRedisImpl implements AccountService {
             throw new CIMException(OFF_LINE);
         }
 
-        CIMServerResVO cimServerResVO = new CIMServerResVO(RouteInfoParseUtil.parse(value));
-        return cimServerResVO;
+        return new CIMServerResVO(RouteInfoParseUtil.parse(value));
     }
 
     private void parseServerInfo(Map<Long, CIMServerResVO> routes, String key) {
-        long userId = Long.valueOf(key.split(":")[1]);
+        long userId = Long.parseLong(key.split(":")[1]);
         String value = redisTemplate.opsForValue().get(key);
         CIMServerResVO cimServerResVO = new CIMServerResVO(RouteInfoParseUtil.parse(value));
         routes.put(userId, cimServerResVO);
@@ -201,10 +215,10 @@ public class AccountServiceRedisImpl implements AccountService {
 
 
     @Override
-    public void pushMsg(CIMServerResVO cimServerResVO, long sendUserId, ChatReqVO groupReqVO) throws Exception {
+    public void pushMsg(CIMServerResVO cimServerResVO, long sendUserId, ChatReqVO chatReqVo) {
         CIMUserInfo cimUserInfo = userInfoCacheService.loadUserInfoByUserId(sendUserId);
 
-        SendMsgReqVO vo = new SendMsgReqVO(cimUserInfo.getUserName() + ":" + groupReqVO.getMsg(), groupReqVO.getUserId());
+        SendMsgReqVO vo = new SendMsgReqVO(cimUserInfo.getUserName() + ":" + chatReqVo.getMsg(), chatReqVo.getUserId());
 
         String routeInfo = cimServerResVO.getIp() + ":" + cimServerResVO.getCimServerPort() + ":" + cimServerResVO.getHttpPort();
 
@@ -222,4 +236,30 @@ public class AccountServiceRedisImpl implements AccountService {
         //删除登录状态
         userInfoCacheService.removeLoginStatus(userId);
     }
+
+    @Override
+    public void pushMsg(ChatReqVO groupReqVO) {
+
+        //获取所有的推送列表
+        Map<Long, CIMServerResVO> serverResVoMap = loadRouteRelatedByTarget(groupReqVO.getTarget());
+
+        //过滤掉自己
+        if (Objects.nonNull(serverResVoMap.remove(groupReqVO.getUserId()))) {
+            LOGGER.warn("过滤掉了发送者 userId={}", groupReqVO.getUserId());
+        }
+        // 发送者信息
+        CIMUserInfo cimUserInfo = userInfoCacheService.loadUserInfoByUserId(groupReqVO.getUserId());
+        for (Map.Entry<Long, CIMServerResVO> cimServerResVoEntry : serverResVoMap.entrySet()) {
+            Long userId = cimServerResVoEntry.getKey();
+            CIMServerResVO cimServerResVO = cimServerResVoEntry.getValue();
+
+            // 组装消息
+            SendMsgReqVO vo = new SendMsgReqVO(cimUserInfo.getUserName() + ":" + groupReqVO.getMsg(), userId);
+            String routeInfo = cimServerResVO.getIp() + ":" + cimServerResVO.getCimServerPort() + ":" + cimServerResVO.getHttpPort();
+
+            // 推送消息 - mq
+            rabbitTemplate.convertAndSend(exchange, routing + "." + routeInfo, JSON.toJSONString(vo));
+        }
+    }
+
 }
