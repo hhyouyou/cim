@@ -96,9 +96,7 @@ public class BeanConfig {
             method.invoke(routeHandle,consistentHash) ;
             return routeHandle ;
         } else {
-
             return routeHandle;
-
         }
 
     }

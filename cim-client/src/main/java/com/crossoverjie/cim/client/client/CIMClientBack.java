@@ -86,8 +86,6 @@ public class CIMClientBack {
 
         //向服务端注册
         loginCIMServer();
-
-
     }
 
     /**
@@ -100,8 +98,7 @@ public class CIMClientBack {
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(group)
                 .channel(NioSocketChannel.class)
-                .handler(new CIMClientHandleInitializer())
-        ;
+                .handler(new CIMClientHandleInitializer());
 
         ChannelFuture future = null;
         try {
@@ -109,10 +106,10 @@ public class CIMClientBack {
         } catch (Exception e) {
             errorCount++;
 
-            if (errorCount >= configuration.getErrorCount()) {
-                LOGGER.error("连接失败次数达到上限[{}]次", errorCount);
-                msgHandle.shutdown();
-            }
+//            if (errorCount >= configuration.getErrorCount()) {
+//                LOGGER.error("连接失败次数达到上限[{}]次", errorCount);
+//                msgHandle.shutdown();
+//            }
             LOGGER.error("Connect fail!", e);
         }
         if (future.isSuccess()) {
@@ -141,11 +138,11 @@ public class CIMClientBack {
             LOGGER.info("cimServer=[{}]", cimServer.toString());
         } catch (Exception e) {
             errorCount++;
-
-            if (errorCount >= configuration.getErrorCount()) {
-                echoService.echo("The maximum number of reconnections has been reached[{}]times, close cim client!", errorCount);
-                msgHandle.shutdown();
-            }
+//
+//            if (errorCount >= configuration.getErrorCount()) {
+//                echoService.echo("The maximum number of reconnections has been reached[{}]times, close cim client!", errorCount);
+//                msgHandle.shutdown();
+//            }
             LOGGER.error("login fail", e);
         }
         return cimServer;

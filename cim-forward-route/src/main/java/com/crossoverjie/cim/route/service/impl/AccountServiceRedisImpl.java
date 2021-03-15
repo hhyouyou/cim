@@ -1,6 +1,6 @@
 package com.crossoverjie.cim.route.service.impl;
 
-import com.crossoverjie.cim.common.core.proxy.ProxyManager;
+import com.alibaba.fastjson.JSON;
 import com.crossoverjie.cim.common.enums.StatusEnum;
 import com.crossoverjie.cim.common.exception.CIMException;
 import com.crossoverjie.cim.common.pojo.CIMUserInfo;
@@ -12,26 +12,27 @@ import com.crossoverjie.cim.route.api.vo.res.CIMServerResVO;
 import com.crossoverjie.cim.route.api.vo.res.RegisterInfoResVO;
 import com.crossoverjie.cim.route.service.AccountService;
 import com.crossoverjie.cim.route.service.UserInfoCacheService;
-import com.crossoverjie.cim.server.api.ServerApi;
 import com.crossoverjie.cim.server.api.vo.req.SendMsgReqVO;
 import okhttp3.OkHttpClient;
-import okhttp3.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
+import javax.annotation.Resource;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static com.crossoverjie.cim.common.enums.StatusEnum.OFF_LINE;
 import static com.crossoverjie.cim.route.constant.Constant.*;
@@ -59,6 +60,16 @@ public class AccountServiceRedisImpl implements AccountService {
     @Autowired
     private OkHttpClient okHttpClient;
 
+    @Resource
+    private RabbitTemplate rabbitTemplate;
+
+    @Value("${cim.rabbit.exchange}")
+    private String exchange;
+
+    @Value("${cim.rabbit.routing}")
+    private String routing;
+
+
     @Override
     public RegisterInfoResVO register(RegisterInfoResVO info) {
         String key = ACCOUNT_PREFIX + info.getUserId();
@@ -75,7 +86,7 @@ public class AccountServiceRedisImpl implements AccountService {
         }
         // TODO: 2021/3/11 维护 target 列表
         if (StringUtil.isEmpty(info.getTarget())) {
-            info.setTarget("target");
+            info.setTarget("default-target");
         }
         // 维护标签
         String userKey = USER_TARGET_PREFIX + info.getUserId();
@@ -112,9 +123,12 @@ public class AccountServiceRedisImpl implements AccountService {
     }
 
     @Override
-    public void saveRouteInfo(LoginReqVO loginReqVO, String msg) throws Exception {
+    public void saveRouteInfo(LoginReqVO loginReqVO, String serverInfo) throws Exception {
         String key = ROUTE_PREFIX + loginReqVO.getUserId();
-        redisTemplate.opsForValue().set(key, msg);
+        redisTemplate.opsForValue().set(key, serverInfo);
+
+//        key = SERVER_CLIENT_PREFIX + serverInfo;
+//        stringRedisTemplate.opsForSet().add(key, loginReqVO.getUserId().toString());
     }
 
     @Override
@@ -149,14 +163,20 @@ public class AccountServiceRedisImpl implements AccountService {
     @Override
     public Map<Long, CIMServerResVO> loadRouteRelatedByTarget(String target) {
 
-        Set<String> userIdSet = stringRedisTemplate.opsForZSet().range(TARGET_USER_PREFIX + target, 0, -1);
-
         // TODO: 2021/3/11 lua script
-        return userIdSet.stream()
-                .collect(Collectors.toMap(Long::parseLong, userid -> {
-                    String value = stringRedisTemplate.opsForValue().get(userid);
-                    return new CIMServerResVO(RouteInfoParseUtil.parse(value));
-                }));
+        Set<String> userIdSet = stringRedisTemplate.opsForZSet().range(TARGET_USER_PREFIX + target, 0, -1);
+        Map<Long, CIMServerResVO> serverResMap = new HashMap<>(32);
+
+        for (String userIdStr : userIdSet) {
+            String value = stringRedisTemplate.opsForValue().get(ROUTE_PREFIX + userIdStr);
+            if (StringUtils.isEmpty(value)) {
+                continue;
+            }
+            CIMServerResVO cimServerResVO = new CIMServerResVO(RouteInfoParseUtil.parse(value));
+            serverResMap.put(Long.parseLong(userIdStr), cimServerResVO);
+        }
+
+        return serverResMap;
 
     }
 
@@ -180,22 +200,15 @@ public class AccountServiceRedisImpl implements AccountService {
     }
 
 
-    // TODO: 2021/3/11
     @Override
     public void pushMsg(CIMServerResVO cimServerResVO, long sendUserId, ChatReqVO groupReqVO) throws Exception {
         CIMUserInfo cimUserInfo = userInfoCacheService.loadUserInfoByUserId(sendUserId);
 
-        String url = "http://" + cimServerResVO.getIp() + ":" + cimServerResVO.getHttpPort();
-        ServerApi serverApi = new ProxyManager<>(ServerApi.class, url, okHttpClient).getInstance();
         SendMsgReqVO vo = new SendMsgReqVO(cimUserInfo.getUserName() + ":" + groupReqVO.getMsg(), groupReqVO.getUserId());
-        Response response = null;
-        try {
-            response = (Response) serverApi.sendMsg(vo);
-        } catch (Exception e) {
-            LOGGER.error("Exception", e);
-        } finally {
-            response.body().close();
-        }
+
+        String routeInfo = cimServerResVO.getIp() + ":" + cimServerResVO.getCimServerPort() + ":" + cimServerResVO.getHttpPort();
+
+        rabbitTemplate.convertAndSend(exchange, routing + "." + routeInfo, JSON.toJSONString(vo));
     }
 
     @Override

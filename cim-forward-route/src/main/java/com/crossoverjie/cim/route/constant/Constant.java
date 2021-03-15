@@ -4,7 +4,7 @@ package com.crossoverjie.cim.route.constant;
  * Function:
  *
  * @author crossoverJie
- *         Date: 2018/9/10 14:07
+ * Date: 2018/9/10 14:07
  * @since JDK 1.8
  */
 public final class Constant {
@@ -19,6 +19,11 @@ public final class Constant {
      * 路由信息前缀
      */
     public final static String ROUTE_PREFIX = "cim-route:";
+
+    /**
+     * 保存server 对应的client
+     */
+    public final static String SERVER_CLIENT_PREFIX = "server-client:";
 
     /**
      * 登录状态前缀

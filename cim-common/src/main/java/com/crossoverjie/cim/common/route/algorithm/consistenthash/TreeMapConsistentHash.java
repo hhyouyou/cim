@@ -14,7 +14,7 @@ import java.util.TreeMap;
  * @since JDK 1.8
  */
 public class TreeMapConsistentHash extends AbstractConsistentHash {
-    private TreeMap<Long,String> treeMap = new TreeMap<Long, String>() ;
+    private final TreeMap<Long, String> treeMap = new TreeMap<Long, String>();
 
     /**
      * 虚拟节点数量

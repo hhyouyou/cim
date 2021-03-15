@@ -92,7 +92,7 @@ public class RouteController implements RouteApi {
 
 
     @ApiOperation("群聊 API  target")
-    @RequestMapping(value = "groupRoute", method = RequestMethod.POST)
+    @RequestMapping(value = "groupRoute/target", method = RequestMethod.POST)
     @Override
     public BaseResponse<NULLBody> groupRouteByTarget(@RequestBody ChatReqVO groupReqVO) throws Exception {
 
@@ -105,27 +105,19 @@ public class RouteController implements RouteApi {
         if (Objects.nonNull(serverResVoMap.remove(groupReqVO.getUserId()))) {
             LOGGER.warn("过滤掉了发送者 userId={}", groupReqVO.getUserId());
         }
+        for (Map.Entry<Long, CIMServerResVO> cimServerResVoEntry : serverResVoMap.entrySet()) {
+            Long userId = cimServerResVoEntry.getKey();
+            CIMServerResVO cimServerResVO = cimServerResVoEntry.getValue();
+
+            //推送消息
+            ChatReqVO chatVO = new ChatReqVO(userId, groupReqVO.getMsg());
+            accountService.pushMsg(cimServerResVO, groupReqVO.getUserId(), chatVO);
+        }
 
         BaseResponse<NULLBody> res = new BaseResponse();
         res.setCode(StatusEnum.SUCCESS.getCode());
         res.setMessage(StatusEnum.SUCCESS.getMessage());
         return res;
-    }
-
-
-    public void sendMsgList(Long sendId, String msg, Map<Long, CIMServerResVO> serverResVoMap) {
-
-        for (Map.Entry<Long, CIMServerResVO> cimServerResVoEntry : serverResVoMap.entrySet()) {
-            Long userId = cimServerResVoEntry.getKey();
-            CIMServerResVO cimServerResVO = cimServerResVoEntry.getValue();
-
-            // TODO: 2021/3/11 sendMsg
-
-            //推送消息
-//            ChatReqVO chatVO = new ChatReqVO(userId, groupReqVO.getMsg());
-//            accountService.pushMsg(cimServerResVO, groupReqVO.getUserId(), chatVO);
-
-        }
     }
 
 
@@ -210,7 +202,9 @@ public class RouteController implements RouteApi {
         // 再次登录校验X
         status = accountService.login(loginReqVO);
 
-        if (status == StatusEnum.SUCCESS) {
+        if (status == StatusEnum.SUCCESS || status == StatusEnum.REPEAT_LOGIN) {
+
+            LOGGER.info(" server Info" + server);
 
             //保存路由信息
             accountService.saveRouteInfo(loginReqVO, server);

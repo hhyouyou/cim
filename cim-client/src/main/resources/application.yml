@@ -21,12 +21,12 @@ logging:
 cim:
   callback:
     thread:
+      # 回调线程池大小
       pool:
+        size: 50
         # 回调线程队列大小
-        size: 2
       queue:
-        # 回调线程池大小
-        size: 2
+        size: 50
   heartbeat:
     # 检测多少秒没有收到服务端端心跳后重新登录获取连接
     time: 60
@@ -43,6 +43,15 @@ cim:
     id: 1615183672818
     userName: 123
   user-info: { 1615429757989L: test1, 1615429774294L: test2,1615429798054L: test3,1615429807078L: test4,1615429814478L: test5 }
+#management:
+#  security:
+#    enabled: false
+
 management:
-  security:
-    enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      show-details: ALWAYS

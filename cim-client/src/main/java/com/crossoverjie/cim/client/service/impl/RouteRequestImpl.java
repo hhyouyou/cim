@@ -106,8 +106,10 @@ public class RouteRequestImpl implements RouteRequest {
             String json = response.body().string();
             cimServerResVO = JSON.parseObject(json, CIMServerResVO.class);
 
-            //重复失败
-            if (!cimServerResVO.getCode().equals(StatusEnum.SUCCESS.getCode())) {
+            if (cimServerResVO.getCode().equals(StatusEnum.REPEAT_LOGIN.getCode())) {
+                LOGGER.info(" 重复登陆 userId:{} ! ", vo.getUserId());
+            } else if (!cimServerResVO.getCode().equals(StatusEnum.SUCCESS.getCode())) {
+                //重复失败
                 echoService.echo(cimServerResVO.getMessage());
 
                 // when client in reConnect state, could not exit.

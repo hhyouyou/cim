@@ -88,16 +88,21 @@ public class CIMClient {
 
     @PostConstruct
     public void start() throws Exception {
-        userInfo.put(1615429757989L, "test1");
-        userInfo.put(1615429774294L, "test2");
-        userInfo.put(1615429798054L, "test3");
-        userInfo.put(1615429807078L, "test4");
-        userInfo.put(1615429814478L, "test5");
+//        userInfo.put(1615429757989L, "test1");
+//        userInfo.put(1615429774294L, "test2");
+//        userInfo.put(1615429798054L, "test3");
+//        userInfo.put(1615429807078L, "test4");
+//        userInfo.put(1615429814478L, "test5");
+        int clientCount = 5000;
+
+        for (int i = 0; i < clientCount; i++) {
+            userInfo.put(i + System.currentTimeMillis(), "client-" + i);
+        }
 
         AtomicInteger counter = new AtomicInteger(0);
 
-        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(5, 10, 100L, TimeUnit.SECONDS,
-                new ArrayBlockingQueue<>(5), r -> new Thread(r, "client-" + counter.incrementAndGet()), (r, executor) -> System.out.println("拒绝处理啊"));
+        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(clientCount, clientCount * 2, 300L, TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(clientCount), r -> new Thread(r, "client-" + counter.incrementAndGet()), (r, executor) -> System.out.println("拒绝处理啊"));
         userInfo.forEach((userId, userName) -> threadPoolExecutor.execute(() -> {
 
             //登录 + 获取可以使用的服务器 ip+port
@@ -133,10 +138,10 @@ public class CIMClient {
         } catch (Exception e) {
             errorCount++;
 
-            if (errorCount >= configuration.getErrorCount()) {
-                LOGGER.error("连接失败次数达到上限[{}]次", errorCount);
-                msgHandle.shutdown();
-            }
+//            if (errorCount >= configuration.getErrorCount()) {
+//                LOGGER.error("连接失败次数达到上限[{}]次", errorCount);
+//                msgHandle.shutdown();
+//            }
             LOGGER.error("Connect fail!", e);
         }
         if (future.isSuccess()) {
@@ -167,11 +172,11 @@ public class CIMClient {
             LOGGER.info("cimServer=[{}]", cimServer.toString());
         } catch (Exception e) {
             errorCount++;
-
-            if (errorCount >= configuration.getErrorCount()) {
-                echoService.echo("The maximum number of reconnections has been reached[{}]times, close cim client!", errorCount);
-                msgHandle.shutdown();
-            }
+//
+//            if (errorCount >= configuration.getErrorCount()) {
+//                echoService.echo("The maximum number of reconnections has been reached[{}]times, close cim client!", errorCount);
+//                msgHandle.shutdown();
+//            }
             LOGGER.error("login fail", e);
         }
         return cimServer;

@@ -1,5 +1,5 @@
 server:
-  port: 8081
+  port: 8085
 spring:
   application:
     name: cim-server
@@ -36,12 +36,12 @@ cim:
     url: http://localhost:8083/
   server:
     # cim 服务器端口
-    port: 11212
+    port: 11211
 
   rabbit:
     exchange: "topic.exchange.cim"
-    queue: "queue.send.msg.127.0.1.1:11212:8081"
-    routing: "routing.send.msg.127.0.1.1:11212:8081"
+    queue: "queue.send.msg.127.0.1.1:11211:8085"
+    routing: "routing.send.msg.127.0.1.1:11211:8085"
 
 
 

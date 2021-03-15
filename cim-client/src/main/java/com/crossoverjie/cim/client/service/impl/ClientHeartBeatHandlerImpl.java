@@ -30,7 +30,7 @@ public class ClientHeartBeatHandlerImpl implements HeartBeatHandler {
 
         //重连
         ContextHolder.setReconnect(true);
-        cimClient.reconnect();
+//        cimClient.reconnect();
 
     }
 
